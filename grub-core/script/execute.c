@@ -27,6 +27,7 @@
 #include <grub/normal.h>
 #include <grub/extcmd.h>
 #include <grub/i18n.h>
+#include <grub/tpm.h>
 
 /* Max digits for a char is 3 (0xFF is 255), similarly for an int it
    is sizeof (int) * 3, and one extra for a possible -ve sign.  */
@@ -929,8 +930,9 @@ grub_script_execute_cmdline (struct grub_script_cmd *cmd)
   grub_err_t ret = 0;
   grub_script_function_t func = 0;
   char errnobuf[18];
-  char *cmdname;
-  int argc;
+  char *cmdname, *cmdstring;
+  int argc, offset = 0, cmdlen = 0;
+  unsigned int i;
   char **args;
   int invert;
   struct grub_script_argv argv = { 0, 0, 0 };
@@ -943,6 +945,43 @@ grub_script_execute_cmdline (struct grub_script_cmd *cmd)
   argc = argv.argc - 1;
   args = argv.args + 1;
   cmdname = argv.args[0];
+
+  /* Measure commands START */
+  /* Do not measure the following commands:
+   * menuentry
+   * submenu
+   * [ ... ]
+   *
+   * They make precomputation of the PCR value difficult and it's unnecessary
+   * because each command within menuentry and submeny is measured anyway. As
+   * for [ ... ], it seems it isn't possible to execute a command within those.
+   */
+  if ( grub_strncmp( cmdname, "menuentry", grub_strlen( "menuentry" ) ) != 0 &&
+       grub_strncmp( cmdname, "submenu", grub_strlen( "submenu" ) ) != 0 &&
+       grub_strncmp( cmdname, "[", grub_strlen( "[" ) ) != 0 ) {
+    for (i = 0; i < argv.argc; i++) {
+         cmdlen += grub_strlen (argv.args[i]) + 1;
+    }
+
+    cmdstring = grub_malloc (cmdlen);
+    if (!cmdstring)
+    {
+         return grub_error (GRUB_ERR_OUT_OF_MEMORY,
+                            N_("cannot allocate command buffer"));
+    }
+
+    for (i = 0; i < argv.argc; i++) {
+         offset += grub_snprintf (cmdstring + offset, cmdlen - offset, "%s ",
+                                  argv.args[i]);
+    }
+    cmdstring[cmdlen-1]= '\0';
+    grub_tpm_measure ((unsigned char *)cmdstring, cmdlen, GRUB_COMMAND_PCR,
+                   "grub_cmd", cmdstring);
+    grub_print_error();
+    grub_free(cmdstring);
+  }
+  /* Measure commands END */
+
   if (grub_strcmp (cmdname, "!") == 0)
     {
       if (argv.argc < 2 || ! argv.args[1])

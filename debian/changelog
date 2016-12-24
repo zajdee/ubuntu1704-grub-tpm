@@ -1,3 +1,12 @@
+grub2 (2.02~beta3-3ubuntu1tpm3) zesty; urgency=medium
+
+   [ Radek Zajic]
+   * Incorporated TPM support.
+   * Dropped legacy CHS support for BIOS boot (will not boot from floppies).
+   * See https://github.com/zajdee/ubuntu1704-grub-tpm for more details.
+
+ -- Radek Zajic <radek@zajic.v.pytli.cz>  Thu, 22 Dec 2016 12:47:29 +0100
+
 grub2 (2.02~beta3-3ubuntu1) zesty; urgency=medium
 
   [ Colin Watson ]

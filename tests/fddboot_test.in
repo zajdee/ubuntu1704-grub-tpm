@@ -32,6 +32,9 @@ case "${grub_modinfo_target_cpu}-${grub_modinfo_platform}" in
     # FIXME: We don't support EFI floppy boot in grub-mkrescue
     *-efi)
 	exit 0;;
+    # FIXME: We don't support floppy boot for TPMGRUB
+    *-pc)
+	exit 0;;
     # FIXME: no floppy support
     i386-multiboot)
 	exit 0;;
